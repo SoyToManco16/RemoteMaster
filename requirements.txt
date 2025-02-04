@@ -1,4 +1,5 @@
-nmap
+python-nmap
 psutil
 paramiko
 colorama
+ftplib
