@@ -1,64 +1,102 @@
-import nmap
-import psutil
-import socket
-import ipaddress
+# Librerías
+import paramiko
 from colorama import Fore
+import sys
+import select
+from Funciones.system_funcions import get_os
 
-def get_neighbors(network_range):
-    nm = nmap.PortScanner()
-    nm.scan(hosts=network_range, arguments='-O')
+myhost = get_os()
+myhost = myhost.lower()
 
-    print(f"{Fore.YELLOW}Hosts encontrados{Fore.RESET}\n")
+if myhost == "windows":
+    import msvcrt
+else:
+    import termios
+    import tty
 
-    for host in nm.all_hosts():
-        if nm[host].state() == "up":
-            print(f"{Fore.LIGHTYELLOW_EX}Host encontrado:{Fore.RESET} {host}")
-            if 'osclass' in nm[host]:
-                for osclass in nm[host]['osclass']:
-                    print(f"{Fore.LIGHTYELLOW_EX}Sistema Operativo: {osclass['osfamily']} {osclass['osgen']}{Fore.RESET}")
-            elif 'osmatch' in nm[host]:
-                for osmatch in nm[host]['osmatch']:
-                    print(f"{Fore.LIGHTYELLOW_EX}Sistema Operativo: {osmatch['name']} ({osmatch['accuracy']}% accuracy){Fore.RESET}")
-            else:
-                print(f"{Fore.LIGHTYELLOW_EX}Sistema Operativo: No detectado{Fore.RESET}")
+# Funciones
+def create_ssh_client_pass(hostname, port, username, password):
+    try:
+        # Crear cliente
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-def get_interfaces():
-    interfaces = psutil.net_if_addrs()
-    net_info = {}
+        # Conectar al servidor
+        ssh_client.connect(hostname=hostname, port=port, username=username, password=password)
 
-    for interface, addrs in interfaces.items():
-        for addr in addrs:
-            if addr.family == socket.AF_INET:
-                net_info[interface] = (addr.address, addr.netmask)
+        return ssh_client
 
-    return net_info
+    except Exception:
+        return None
 
-def show_ips_and_interfaces(net_info):
-    """Muestra las interfaces disponibles con su IP y máscara de subred."""
-    print("\n" + f"{Fore.YELLOW}Interfaces del sistema{Fore.RESET}\n")
-    
-    for interface, (ip_address, netmask) in net_info.items():
-        print(f"{Fore.LIGHTYELLOW_EX}Interfaz: {interface} - Dirección IP: {ip_address} - Máscara de red: {netmask}{Fore.RESET}\n")
+def start_ssh(ssh_client):
+    if ssh_client is None:
+        print(f"{Fore.RED}No existe un cliente SSH, saliendo del programa... {Fore.RESET}")
+        exit()
 
-def get_network_from_interface(ip, net_info):
-    for _, (interface_ip, mask) in net_info.items():
-        if interface_ip == ip:
-            return ipaddress.IPv4Network(f"{ip}/{mask}", strict=False)
-    return None
+    try:
+        shell = ssh_client.invoke_shell()
+        print(f"{Fore.GREEN}Sesión SSH interactiva establecida{Fore.RESET}")
 
-# Ejecución del menú principal
-if __name__ == "__main__":
-    # Obtener redes
-    interfaces_info = get_interfaces()
-    show_ips_and_interfaces(interfaces_info)
-    print(" ")
+        if sys.platform.startswith("win"):  # Si es Windows
+            while True:
+                if shell.recv_ready():
+                    data = shell.recv(1024).decode()
+                    if data:
+                        print(data, end="")
 
-    # Pedir IP a utilizar para convertir a red y escanear con nmap para obtener sistemas disponibles
-    chosenet = input(f"{Fore.CYAN}Introduce la dirección IP de la interfaz que vas a utilizar: {Fore.RESET}")
+                if msvcrt.kbhit():
+                    key = msvcrt.getch()
+                    if key == b'\r':  # Enter
+                        shell.send('\n')
+                    elif key == b'\x03':  # Ctrl+C
+                        break
+                    else:
+                        shell.send(key.decode())
 
-    user_network = get_network_from_interface(chosenet, interfaces_info)
-    user_network = str(user_network)  # Convertimos a string porque la función de nmap espera un string y no  <class 'ipaddress.IPv4Network'>
-    print(" ")
-    
-    # Obtener equipos conectados de la red del usuario y sus sistemas operativos
-    get_neighbors(user_network)
+        else:  # Si es Linux o macOS
+            old_tty_settings = termios.tcgetattr(sys.stdin)
+            try:
+                tty.setraw(sys.stdin.fileno())
+                shell.settimeout(0.0)
+
+                while True:
+                    r, w, e = select.select([shell, sys.stdin], [], [])
+
+                    if shell in r:
+                        try:
+                            output = shell.recv(1024).decode('utf-8')
+                            if len(output) == 0:
+                                print("\nConexión cerrada")
+                                break
+                            sys.stdout.write(output)
+                            sys.stdout.flush()
+                        except Exception as e:
+                            print(f"Error recibiendo datos: {e}")
+                            break
+
+                    if sys.stdin in r:
+                        input_cmd = sys.stdin.read(1)
+                        if len(input_cmd) == 0:
+                            break
+                        shell.send(input_cmd)
+
+            finally:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty_settings)
+
+    except KeyboardInterrupt:
+        print("\nCerrando sesión SSH...")
+
+    finally:
+        shell.close()
+        ssh_client.close()
+
+
+hostname = "192.168.56.108"
+port = 22
+username = "miguel"
+password = "Micasa123"
+
+sshclient = create_ssh_client_pass(hostname, port, username, password)
+
+start_ssh(sshclient)
