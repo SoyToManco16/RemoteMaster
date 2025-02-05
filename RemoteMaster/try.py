@@ -1,18 +1,10 @@
 # Librerías
 import paramiko
 from colorama import Fore
-import sys
-import select
 from Funciones.system_funcions import get_os
 
 myhost = get_os()
 myhost = myhost.lower()
-
-if myhost == "windows":
-    import msvcrt
-else:
-    import termios
-    import tty
 
 # Funciones
 def create_ssh_client_pass(hostname, port, username, password):
@@ -29,74 +21,108 @@ def create_ssh_client_pass(hostname, port, username, password):
     except Exception:
         return None
 
-def start_ssh(ssh_client):
+
+def start_sftp_interactive(ssh_client):
     if ssh_client is None:
-        print(f"{Fore.RED}No existe un cliente SSH, saliendo del programa... {Fore.RESET}")
+        print("No existe un cliente SSH, saliendo del programa...")
         exit()
 
     try:
-        shell = ssh_client.invoke_shell()
-        print(f"{Fore.GREEN}Sesión SSH interactiva establecida{Fore.RESET}")
+        sftp_client = ssh_client.open_sftp()
+        print("Conexión SFTP interactiva establecida.")
 
-        if sys.platform.startswith("win"):  # Si es Windows
-            while True:
-                if shell.recv_ready():
-                    data = shell.recv(1024).decode()
-                    if data:
-                        print(data, end="")
+        # Intentamos establecer el directorio raíz al inicio
+        try:
+            sftp_client.chdir('/')  # Cambia al directorio raíz
+            current_directory = sftp_client.getcwd()  # Obtén el directorio actual
+            print(f"Directorio actual: {current_directory}")
+        except Exception as e:
+            print(f"Error al establecer el directorio raíz: {e}")
+            current_directory = "/"
 
-                if msvcrt.kbhit():
-                    key = msvcrt.getch()
-                    if key == b'\r':  # Enter
-                        shell.send('\n')
-                    elif key == b'\x03':  # Ctrl+C
-                        break
-                    else:
-                        shell.send(key.decode())
+        while True:
+            # Mostrar el prompt interactivo con el directorio actual
+            print(f"\nsftp ({current_directory})> ", end="")
+            command = input().strip()
 
-        else:  # Si es Linux o macOS
-            old_tty_settings = termios.tcgetattr(sys.stdin)
-            try:
-                tty.setraw(sys.stdin.fileno())
-                shell.settimeout(0.0)
+            # Salir de la sesión SFTP
+            if command == "exit" or command == "quit":
+                print("Saliendo de la sesión SFTP...")
+                break
 
-                while True:
-                    r, w, e = select.select([shell, sys.stdin], [], [])
+            # Subir archivo
+            elif command.startswith("put "):
+                parts = command.split(" ", 2)
+                if len(parts) < 3:
+                    print("Uso: put <archivo_local> <archivo_remoto>")
+                    continue
 
-                    if shell in r:
-                        try:
-                            output = shell.recv(1024).decode('utf-8')
-                            if len(output) == 0:
-                                print("\nConexión cerrada")
-                                break
-                            sys.stdout.write(output)
-                            sys.stdout.flush()
-                        except Exception as e:
-                            print(f"Error recibiendo datos: {e}")
-                            break
+                local_file = parts[1]
+                remote_path = parts[2]
 
-                    if sys.stdin in r:
-                        input_cmd = sys.stdin.read(1)
-                        if len(input_cmd) == 0:
-                            break
-                        shell.send(input_cmd)
+                try:
+                    sftp_client.put(local_file, remote_path)
+                    print(f"Archivo subido a {remote_path}")
+                except Exception as e:
+                    print(f"Error al subir archivo: {e}")
 
-            finally:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty_settings)
+            # Descargar archivo
+            elif command.startswith("get "):
+                parts = command.split(" ", 2)
+                if len(parts) < 3:
+                    print("Uso: get <archivo_remoto> <archivo_local>")
+                    continue
 
-    except KeyboardInterrupt:
-        print("\nCerrando sesión SSH...")
+                remote_file = parts[1]
+                local_path = parts[2]
 
+                try:
+                    sftp_client.get(remote_file, local_path)
+                    print(f"Archivo descargado a {local_path}")
+                except Exception as e:
+                    print(f"Error al descargar archivo: {e}")
+
+            # Listar archivos remotos
+            elif command == "ls":
+                try:
+                    files = sftp_client.listdir(current_directory)
+                    for file in files:
+                        print(file)
+                except Exception as e:
+                    print(f"Error al listar archivos: {e}")
+
+            # Cambiar el directorio remoto (similar a cd)
+            elif command.startswith("cd "):
+                path = command[3:].strip()
+                try:
+                    sftp_client.chdir(path)
+                    current_directory = sftp_client.getcwd()  # Actualiza el directorio actual
+                    print(f"Directorio cambiado a: {current_directory}")
+                except Exception as e:
+                    print(f"Error al cambiar el directorio: {e}")
+
+            # Mostrar el directorio actual remoto (similar a pwd)
+            elif command == "pwd":
+                print(f"Directorio actual: {current_directory}")
+
+            # Comandos no reconocidos
+            else:
+                print(f"Comando no reconocido: {command}")
+                print("Comandos disponibles: put, get, ls, cd, pwd, exit")
+
+    except Exception as e:
+        print(f"Error al iniciar sesión SFTP: {e}")
     finally:
-        shell.close()
-        ssh_client.close()
+        sftp_client.close()
+
+    
 
 
-hostname = "192.168.56.108"
+hostname = "192.168.56.1"
 port = 22
 username = "miguel"
-password = "Micasa123"
+password = "Micasa35262441"
 
 sshclient = create_ssh_client_pass(hostname, port, username, password)
 
-start_ssh(sshclient)
+start_sftp_interactive(sshclient)

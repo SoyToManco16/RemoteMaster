@@ -2,7 +2,10 @@
 from Funciones.system_funcions import clear, get_os
 
 # Librerias para paramiko
-from Funciones.paramiko_functions import key_or_not, start_ssh
+from Funciones.paramiko_functions import key_or_not, start_ssh, create_sftp_client
+
+# Librerías para windows y powershell
+from Funciones.shell_windows_functions import remote_desk
 
 # Librerías funciones de red
 from Funciones.network_functions import get_interfaces, get_neighbors, get_network_from_interface, show_ips_and_interfaces
@@ -11,13 +14,18 @@ from Funciones.network_functions import get_interfaces, get_neighbors, get_netwo
 from colorama import Fore
 
 # Librería para los menús
-from Menus.menus_rm import main_menu, show_menu_os_type, file_transfer_menu, shell_windows
+from Menus.menus_rm import main_menu, show_menu_os_type, file_transfer_menu, shell_windows, windows_to_windows_menu, linux_to_linux_menu, only_IP_menu, hybrid_menu
 
 
 # Ejecución del programa principal
 if __name__ == "__main__":
 
+    # Obtener sistema nativo
+    host_os = get_os()
+    host_os = host_os.lower()
+
     # Mostrar menu
+    clear()
     main_menu()
 
     # Preguntar al usuario si sabe ya el sistema operativo y la IP del host
@@ -26,11 +34,11 @@ if __name__ == "__main__":
     if direct_connection == 's':
         # Si el usuario ya sabe la IP y el sistema operativo, saltar a la sección de selección del host y sistema operativo.
         choosehost = input(f"{Fore.CYAN}Introduce la dirección IP del host al que quiere conectarse: {Fore.RESET}")
-        remote_os_type = input(f"{Fore.CYAN}Introduce el tipo de sistema operativo del host (Windows / Linux): {Fore.RESET}").strip().lower()
+        remote_os = input(f"{Fore.CYAN}Introduce el tipo de sistema operativo del host (Windows / Linux): {Fore.RESET}").strip().lower()
 
     elif direct_connection == 'ip':
         choosehost = input(f"{Fore.CYAN}Introduce la dirección IP del host al que quiere conectarse: {Fore.RESET}")
-        remote_os_type = 'ip'
+        remote_os = 'ip'
         
     elif direct_connection == 'n':
         """
@@ -67,10 +75,11 @@ if __name__ == "__main__":
         choosehost = input(f"{Fore.CYAN}Seleccione la dirección IP del host al que quiere conectarse: {Fore.RESET}")
 
         # Obtener el sistema operativo del host al que nos conectaremos
-        remote_os_type = input(f"{Fore.CYAN}Introduce el tipo de sistema operativo del host (Windows / Linux): {Fore.RESET}").strip().lower()
+        remote_os = input(f"{Fore.CYAN}Introduce el tipo de sistema operativo del host (Windows / Linux): {Fore.RESET}").strip().lower()
 
     else:
         print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
+        exit()
 
     # Preguntar si el usuario tiene claves o va a iniciar con contraseña
     keyorpass = input(f"{Fore.CYAN}Si dispones de claves de acceso introduce s de lo contrario pulsa intro: {Fore.RESET}"); print(" ")
@@ -82,57 +91,49 @@ if __name__ == "__main__":
     if sshclient == None:
         print(f"{Fore.RED}RemoteMaster no ha logrado conectarse a {choosehost}, saliendo del programa... {Fore.RESET}")
         exit()
-    
 
     # Mostrar el menú según el sistema operativo del host
     clear()
-    host_os_type = get_os()
-    host_os_type = host_os_type.lower()
-    show_menu_os_type(remote_os_type, host_os_type); print("")
+    show_menu_os_type(remote_os, host_os); print("")
 
-    """
-    host_os_type es el sistema operativo anfitrión
-    remote_os_type es el sistema operativo remoto
+    # Opciones de los menús
+    def menu_utilidades(opcion, remote_os, host_os):
+        match (opcion, remote_os, host_os):
+        
+            # Caso para transferencia de archivos
+            case ("1", _, _):
+                if remote_os in ["windows", "linux", "ip"] and host_os in ["windows", "linux"]:
+                    sftp_client = create_sftp_client(sshclient)
 
-    Si el SO nativo es Windows y el SO remoto es Windows muestra un menú con 3 opciones
-    Si el SO nativo es Windows y el SO remoto es Linux muestra solo 2
-    Si el SO nativo es Linux y el SO remoto es Linux muestra solo 2
-    Si solo sabemos la IP del host remoto nos muestra un menú con dos opciones
-    """
+                    if sftp_client is None:
+                        print(f"{Fore.RED}RemoteMaster no ha logrado crear una instancia SFTP, saliendo del programa... {Fore.RESET}")
+                        return
 
-# Obtener la opción del usuario para elegir el tipo de conexión remota
-answer = input("Introduce una opción: ").strip()
+                    file_transfer_menu(sshclient, sftp_client)
+                else:
+                    print(f"{Fore.YELLOW}Combinación de sistemas no soportada para transferencia de archivos.{Fore.RESET}")
 
-# Opción 1: Transferencia de archivos (SFTP) para todos los menús
-if answer == "1":
-    file_transfer_menu()
+            # Caso para acceso remoto (Windows Shell o SSH según corresponda)
+            case ("2", _, _):
+                if remote_os == "windows" and host_os == "windows":
+                    shell_windows()
+                elif remote_os in ["windows", "linux", "ip"] and host_os in ["windows", "linux"]:
+                    start_ssh(sshclient)
+                else:
+                    print(f"{Fore.YELLOW}Combinación de sistemas no soportada para acceso remoto.{Fore.RESET}")
 
-# Menú Windows a Windows (Opción 2: Shell Windows)
-elif answer == "2" and remote_os_type == "windows" and host_os_type == "windows":
-    shell_windows()  # Abre la shell de Windows
+            # Caso específico para escritorio remoto (solo Windows ↔ Windows)
+            case ("3", "windows", "windows"):
+                remote_desk()
 
-# Menú Linux a Linux (Opción 2: Shell SSH)
-elif answer == "2" and remote_os_type == "linux" and host_os_type == "linux":
-    start_ssh(sshclient)  # Abre la conexión SSH Linux a Linux
+            # Caso por defecto si la opción no es válida
+            case _:
+                print(f"{Fore.YELLOW}Opción no válida o combinación de sistemas no soportada.{Fore.RESET}")
 
-# Menú híbrido (Linux a Windows o Windows a Linux) (Opción 2: Shell SSH)
-elif answer == "2" and (remote_os_type == "linux" and host_os_type == "windows") or (remote_os_type == "windows" and host_os_type == "linux"):
-    start_ssh(sshclient)  # Abre la conexión SSH Híbrida
 
-# Menú IPOnly (Opción 2: Shell SSH)
-elif answer == "2" and (host_os_type == "windows" or host_os_type == "linux"):
-    start_ssh(sshclient)  # Abre la conexión SSH con solo IP
-
-# Menú Windows a Windows (Opción 3: Remote Desktop)
-elif answer == "3" and remote_os_type == "windows" and host_os_type == "windows":
-    remote_desktop()  # Abre la interfaz gráfica Remote Desktop
-
-# Si la opción no es válida
-else:
-    print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
-
-   
-
+    # Obtener opción del usuario y ejecutar la función
+    opcion = input("Introduce una opción: ")
+    menu_utilidades(opcion, remote_os, host_os)
 
     
 

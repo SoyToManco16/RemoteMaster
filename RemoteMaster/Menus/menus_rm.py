@@ -1,12 +1,14 @@
 # Librerias
 from colorama import Fore
-from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly
+from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly, rm_sftp
 from Funciones.system_funcions import get_os
-from Funciones.paramiko_functions import start_ssh
+from Funciones.paramiko_functions import start_ssh, open_sftp_shell, sftp_download_file, sftp_upload_file
+from Funciones.system_funcions import clear
 
 # Get os
 myhost = get_os()
 myhost = myhost.lower()
+
 
 # Menús
 def main_menu():
@@ -15,7 +17,7 @@ def main_menu():
 
 def show_menu_os_type(remote_os_type, host_os_type):
     """Muestra el menú adecuado según el sistema operativo del host."""
-    # Pasar a minúsculas para evitar confrontación
+    # Convertir a minúsculas para evitar problemas
     remote_os_type = remote_os_type.lower()
     host_os_type = host_os_type.lower()
 
@@ -25,12 +27,12 @@ def show_menu_os_type(remote_os_type, host_os_type):
         linux_to_linux_menu()
     elif (remote_os_type == "linux" and host_os_type == "windows") or (remote_os_type == "windows" and host_os_type == "linux"):
         hybrid_menu()
-    elif (remote_os_type == "ip" and ((host_os_type == "windows") or (host_os_type == "linux"))):
+    elif remote_os_type == "ip" and host_os_type in ["windows", "linux"]:
         only_IP_menu()
     else:
-        print(f"No hay soporte para: {remote_os_type.capitalize()}")
+        print(f"{Fore.RED}No hay soporte para: {remote_os_type.capitalize()} o combinación inválida.{Fore.RESET}")
         exit()
-
+        
 def windows_to_windows_menu():
     """Muestra el menú para Windows."""
 
@@ -65,50 +67,58 @@ def only_IP_menu():
     print(f"{Fore.LIGHTRED_EX}Sistema en uso: {Fore.RESET}{myhost}")
     print(f"{Fore.LIGHTRED_EX}1. Transferencia de archivos (SFTP)")
     print(f"2. Shell (SSH) {Fore.RESET}")
+    
 
 
 # Menús File Transfer
 
-def file_transfer_menu():
+def file_transfer_menu(sshclient, sftp_client):
     """Menú principal para transferencia de archivos."""
+
+    print(Fore.LIGHTMAGENTA_EX + rm_sftp + "\n")
     print("\n¿Qué tipo de transmisión desea utilizar?")
     print("1. Transferencia simple (Subir/Descargar)")
     print("2. Abrir terminal")
 
-    option = input("Seleccione una opción (1/2): ")
+    option = input(f"Seleccione una opción (1/2):{Fore.RESET} ")
 
     if option == "1":
-        file_transfer_type_simple_menu()
+        file_transfer_type_simple_menu(sftp_client)
     elif option == "2":
-        open_sftp_shell()
+        open_sftp_shell(sshclient)
     else:
-        print("Eso no es una opción correcta")
+        print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
+        exit()
 
-def file_transfer_type_simple_menu():
-    """Submenú para descarga o subida de archivos en transferencia simple."""
+def file_transfer_type_simple_menu(sftp_client):
+    """Submenú para descarga o subida de archivos en transferencia simple.
+        Mirar esto"""
+
     print("\n¿Qué tipo de transferencia deseas realizar?")
-    print("1. Descargar un fichero o varios")
-    print("2. Subir un fichero o varios")
+    print("1. Descargar un fichero")
+    print("2. Subir un fichero")
 
     option = input("Seleccione una opción (1/2): ").strip()
 
     if option == "1":
         remote_dir = input("Introduce el directorio remoto del servidor: ")
         local_file = input("Introduce el fichero o ficheros que quieres descargarte: ")
-        sftp_download_files(local_file, remote_dir)
+
+        sftp_download_file(sftp_client, local_file, remote_dir)
 
     elif option == "2":
         remote_dir = input("Introduce el directorio remoto del servidor: ")
-        local_file = input("Introduce el fichero o ficheros que quieres descargarte: ")
-        sftp_upload_files(local_file, remote_dir)
+        local_file = input("Introduce el fichero o ficheros que quieres subir: ")
+
+        sftp_upload_file(sftp_client, local_file, remote_dir)
 
     else:
-        print("Opción inválida.")
+        print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
+        exit()
 
-# Menús para windows (RDP Y WinRM)
-def shell_windows():
+# Menú para windows (SSH Y WinRM)
+def shell_windows(ssh_client):
     """Submenú para elegir entre conexión mediante WinRM (PowerShell) o SSH."""
-    from MainRemote import sshclient # Variable para realizar conexiones ssh
 
     print("\n¿Qué tipo de conexión deseas realizar?")
     print("1. WinRM (Debes de haber ejecutado previamente RM-Winrm.ps1 !!)")
@@ -119,6 +129,10 @@ def shell_windows():
     if option == "1":
         call_winrm()
     elif option == "2":
-        start_ssh(sshclient)
+        start_ssh(ssh_client)
     else:
         print(f"{Fore.RED}Opción no válida, saliendo del programa... {Fore.RESET}")
+        exit()
+
+def remote_desktop():
+    print("En proceso")
