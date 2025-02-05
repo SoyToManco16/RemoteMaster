@@ -3,7 +3,6 @@ import nmap
 import psutil
 import socket
 import ipaddress
-import paramiko
 
 # Librerías de personalización
 from colorama import Fore

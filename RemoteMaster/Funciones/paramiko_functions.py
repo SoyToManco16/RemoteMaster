@@ -2,6 +2,7 @@
 import paramiko
 from colorama import Fore
 import sys
+import os
 import select
 from Funciones.system_funcions import get_os
 
@@ -79,17 +80,17 @@ def key_or_not(host, answer):
     hostname = host
     port = int(input(f"{Fore.CYAN}Selecciona el puerto del servidor al que te conectarás (pred: 22): {Fore.RESET}") or "22")
     username = input(f"{Fore.CYAN}Introduce el nombre de usuario con el que te conectarás al servidor: {Fore.RESET}")
-
+    password = input(f"{Fore.CYAN}Introduce la contraseña del usuario: {Fore.RESET}")
+    
     if answer == "s":
         key_file = input(f"{Fore.CYAN}Introduce la ruta del archivo de clave privada: {Fore.RESET}")
         key_passphrase = input(f"{Fore.CYAN}Introduce la frase de paso de la clave privada (si no tiene, deja vacío): {Fore.RESET}") or None
         ssh_client = create_ssh_client_keys(hostname, port, username, key_file, key_passphrase)
-        return ssh_client
+        return ssh_client, username, password
     
     else:
-        password = input(f"{Fore.CYAN}Introduce la contraseña del usuario: {Fore.RESET}")
         ssh_client = create_ssh_client_pass(hostname, port, username, password)
-        return ssh_client
+        return ssh_client, username, password
 
 def start_ssh(ssh_client):
 
@@ -262,36 +263,36 @@ def file_exists_sftp(sftp_client, remote_file):
     try:
         sftp_client.stat(remote_file)
         return True
-    except FileNotFoundError:
+    except IOError:
         return False
     except Exception as e:
         print(f"{Fore.RED}Ocurrió un error al comprobar el archivo{Fore.RESET}")
         return None
 
-
-def sftp_upload_file(sftp_client, local_file, remote_dir):
+def sftp_upload_file(sftp_client, local_file, remote_file):
     """Función para subir un archivo a un servidor SFTP."""
     try:
-        # Comprobar si el archivo existe
-        if file_exists_sftp(sftp_client, remote_dir):
-            print(f"{Fore.YELLOW}El archivo ya existe en el servidor...{Fore.RESET}")
-        else:
-            # Subir el archivo local al directorio remoto
-            sftp_client.put(local_file, remote_dir)
-            print(f"Archivo {local_file} subido a {remote_dir}")
+        # Si la ruta local no es absoluta, la resolvemos usando el directorio actual
+        if not os.path.isabs(local_file):
+            local_file = os.path.join(os.getcwd(), local_file)
+
+        # Subir el archivo local al archivo remoto
+        sftp_client.put(local_file, remote_file)
+        print(f"Archivo {local_file} subido a {remote_file}")
     
     except Exception as e:
         print(f"Ocurrió un error al subir el archivo: {e}")
 
-def sftp_download_file(sftp_client, remote_file, local_dir):
-    """Función para descargar un archivo de un servidor SFTP."""
+def sftp_download_file(sftp_client, remote_file, local_file):
+    """Función para descargar un archivo desde un servidor SFTP."""
     try:
-        if file_exists_sftp(sftp_client, remote_file):
-            # Descargar el archivo remoto al directorio local
-            sftp_client.get(remote_file, local_dir)
-            print(f"Archivo {remote_file} descargado a {local_dir}")
-        else:
-            print(f"{Fore.RED}El archivo {remote_file} no existe en el servidor{Fore.RESET}")
+        # Si la ruta local no es absoluta, la resolvemos usando el directorio actual
+        if not os.path.isabs(local_file):
+            local_file = os.path.join(os.getcwd(), local_file)
+
+        # Descargar el archivo remoto al archivo local
+        sftp_client.get(remote_file, local_file)
+        print(f"Archivo {remote_file} descargado a {local_file}")
     
     except Exception as e:
         print(f"Ocurrió un error al descargar el archivo: {e}")

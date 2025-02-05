@@ -5,7 +5,7 @@ from Funciones.system_funcions import clear, get_os
 from Funciones.paramiko_functions import key_or_not, start_ssh, create_sftp_client
 
 # Librerías para windows y powershell
-from Funciones.shell_windows_functions import remote_desk
+from Funciones.shell_windows_functions import remote_desktop_with_password
 
 # Librerías funciones de red
 from Funciones.network_functions import get_interfaces, get_neighbors, get_network_from_interface, show_ips_and_interfaces
@@ -14,7 +14,7 @@ from Funciones.network_functions import get_interfaces, get_neighbors, get_netwo
 from colorama import Fore
 
 # Librería para los menús
-from Menus.menus_rm import main_menu, show_menu_os_type, file_transfer_menu, shell_windows, windows_to_windows_menu, linux_to_linux_menu, only_IP_menu, hybrid_menu
+from Menus.menus_rm import main_menu, show_menu_os_type, file_transfer_menu, shell_windows
 
 
 # Ejecución del programa principal
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     keyorpass = input(f"{Fore.CYAN}Si dispones de claves de acceso introduce s de lo contrario pulsa intro: {Fore.RESET}"); print(" ")
 
     # Capturar cliente ssh en una variable para poder manejarlo
-    sshclient = key_or_not(choosehost, keyorpass)
+    sshclient, username, password = key_or_not(choosehost, keyorpass)
 
     # Manejar errores a la hora de la creación del cliente ssh
     if sshclient == None:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
                     if sftp_client is None:
                         print(f"{Fore.RED}RemoteMaster no ha logrado crear una instancia SFTP, saliendo del programa... {Fore.RESET}")
-                        return
+                        exit()
 
                     file_transfer_menu(sshclient, sftp_client)
                 else:
@@ -116,7 +116,7 @@ if __name__ == "__main__":
             # Caso para acceso remoto (Windows Shell o SSH según corresponda)
             case ("2", _, _):
                 if remote_os == "windows" and host_os == "windows":
-                    shell_windows()
+                    shell_windows(sshclient)
                 elif remote_os in ["windows", "linux", "ip"] and host_os in ["windows", "linux"]:
                     start_ssh(sshclient)
                 else:
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
             # Caso específico para escritorio remoto (solo Windows ↔ Windows)
             case ("3", "windows", "windows"):
-                remote_desk()
+                remote_desktop_with_password(choosehost, username, password)
 
             # Caso por defecto si la opción no es válida
             case _:

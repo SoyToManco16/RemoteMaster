@@ -1,9 +1,9 @@
 # Librerias
 from colorama import Fore
-from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly, rm_sftp
-from Funciones.system_funcions import get_os
+from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly, rm_sftp, rm_desktop
+from Funciones.system_funcions import get_os, clear
 from Funciones.paramiko_functions import start_ssh, open_sftp_shell, sftp_download_file, sftp_upload_file
-from Funciones.system_funcions import clear
+from Funciones.shell_windows_functions import call_winrm
 
 # Get os
 myhost = get_os()
@@ -40,7 +40,7 @@ def windows_to_windows_menu():
     print(f"Sistema en uso: {Fore.RESET}{myhost}")
     print(f"{Fore.CYAN}1. Transferencia de archivos (SFTP)")
     print("2. Shell (SSH, WinRM)")
-    print(f"3. Interfaz gráfica (MTSMC) {Fore.RESET}")
+    print(f"3. Interfaz gráfica (MSTSC) {Fore.RESET}")
 
 def linux_to_linux_menu():
     """Muestra el menú para Linux."""
@@ -73,6 +73,7 @@ def only_IP_menu():
 # Menús File Transfer
 
 def file_transfer_menu(sshclient, sftp_client):
+    clear()
     """Menú principal para transferencia de archivos."""
 
     print(Fore.LIGHTMAGENTA_EX + rm_sftp + "\n")
@@ -90,30 +91,39 @@ def file_transfer_menu(sshclient, sftp_client):
         print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
         exit()
 
+from colorama import Fore
+
 def file_transfer_type_simple_menu(sftp_client):
-    """Submenú para descarga o subida de archivos en transferencia simple.
-        Mirar esto"""
+    """Submenú para descarga o subida de archivos en transferencia simple."""
 
-    print("\n¿Qué tipo de transferencia deseas realizar?")
-    print("1. Descargar un fichero")
-    print("2. Subir un fichero")
+    # Mostramos el menú para seleccionar el tipo de transferencia
+    print(f"\n{Fore.LIGHTMAGENTA_EX}¿Qué tipo de transferencia deseas realizar?{Fore.RESET}")
+    print(f"{Fore.LIGHTMAGENTA_EX}1. Descargar un fichero{Fore.RESET}")
+    print(f"{Fore.LIGHTMAGENTA_EX}2. Subir un fichero{Fore.RESET}")
+    
+    # Pedimos al usuario que seleccione una opción
+    option = input(f"{Fore.LIGHTMAGENTA_EX}Seleccione una opción (1/2): {Fore.RESET}").strip()
 
-    option = input("Seleccione una opción (1/2): ").strip()
-
+    # Validamos la opción seleccionada
     if option == "1":
-        remote_dir = input("Introduce el directorio remoto del servidor: ")
-        local_file = input("Introduce el fichero o ficheros que quieres descargarte: ")
-
-        sftp_download_file(sftp_client, local_file, remote_dir)
+        # Si seleccionó descargar, pedimos la ruta remota y local
+        remote_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa del fichero remoto que deseas descargar: {Fore.RESET}").strip()
+        local_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa donde deseas guardar el fichero en tu máquina local: {Fore.RESET}").strip()
+        
+        # Llamamos a la función de descarga
+        sftp_download_file(sftp_client, remote_file, local_file)
 
     elif option == "2":
-        remote_dir = input("Introduce el directorio remoto del servidor: ")
-        local_file = input("Introduce el fichero o ficheros que quieres subir: ")
-
-        sftp_upload_file(sftp_client, local_file, remote_dir)
+        # Si seleccionó subir, pedimos las rutas
+        local_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa del fichero local que deseas subir: {Fore.RESET}").strip()
+        remote_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa donde deseas subir el fichero en el servidor remoto: {Fore.RESET}").strip()
+        
+        # Llamamos a la función de subida
+        sftp_upload_file(sftp_client, local_file, remote_file)
 
     else:
-        print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
+        # Si la opción no es válida, mostramos un mensaje y salimos
+        print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster...{Fore.RESET}")
         exit()
 
 # Menú para windows (SSH Y WinRM)
@@ -133,6 +143,3 @@ def shell_windows(ssh_client):
     else:
         print(f"{Fore.RED}Opción no válida, saliendo del programa... {Fore.RESET}")
         exit()
-
-def remote_desktop():
-    print("En proceso")

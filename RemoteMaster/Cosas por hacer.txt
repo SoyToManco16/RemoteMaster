@@ -1,0 +1,5 @@
+Mirar funciones simples sftp --> Voy a verlo ahora
+Mirar el tema de las claves
+Hace lo del winrm --> esto igual
+Crear instaladores
+Comentarlo todo bien y documentarlo 
