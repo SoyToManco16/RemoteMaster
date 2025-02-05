@@ -15,8 +15,8 @@ systemctl start sshd
 systemctl enable sshd
 
 # Instalar librerías python
-pip install python-nmap
-pip install psutil
-pip install paramiko
-pip install colorama
-pip install pyautogui
+pip3 install python-nmap
+pip3 install psutil
+pip3 install paramiko
+pip3 install colorama
+pip3 install pyautogui

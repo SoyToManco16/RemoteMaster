@@ -1,9 +1,9 @@
 # Librerias
 from colorama import Fore
-from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly, rm_sftp, rm_desktop
+from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly, rm_sftp, rm_wsman
 from Funciones.system_funcions import get_os, clear
 from Funciones.paramiko_functions import start_ssh, open_sftp_shell, sftp_download_file, sftp_upload_file
-from Funciones.shell_windows_functions import call_winrm
+from Funciones.shell_windows_functions import start_winrm_interactive_session, exec_command_with_winrm
 
 # Get os
 myhost = get_os()
@@ -91,7 +91,6 @@ def file_transfer_menu(sshclient, sftp_client):
         print(f"{Fore.RED}Opción no válida, saliendo de RemoteMaster... {Fore.RESET}")
         exit()
 
-from colorama import Fore
 
 def file_transfer_type_simple_menu(sftp_client):
     """Submenú para descarga o subida de archivos en transferencia simple."""
@@ -129,19 +128,39 @@ def file_transfer_type_simple_menu(sftp_client):
         exit()
 
 # Menú para windows (SSH Y WinRM)
-def shell_windows(ssh_client):
+def shell_windows(ssh_client, hostname, username, password):
     """Submenú para elegir entre conexión mediante WinRM (PowerShell) o SSH."""
 
-    print("\n¿Qué tipo de conexión deseas realizar?")
-    print("1. WinRM (Debes de haber ejecutado previamente RM-Winrm.ps1 !!)")
+    print(f"\n{Fore.CYAN}¿Qué tipo de conexión deseas realizar?")
+    print("1. WinRM")
     print("2. SSH")
 
-    option = input("Introduce una opción: ")
+    option = input(f"Introduce una opción:{Fore.RESET} ")
 
     if option == "1":
-        call_winrm()
+        call_winrm(hostname, username, password)
     elif option == "2":
         start_ssh(ssh_client)
+    else:
+        print(f"{Fore.RED}Opción no válida, saliendo del programa... {Fore.RESET}")
+        exit()
+
+def call_winrm(hostname, username, password):
+    """ Submenú para WinRM para elegir entre ejecutar un comando solo 
+    o sesión interactiva """
+
+    clear()
+    print(Fore.CYAN + rm_wsman + "\n")
+    print("1. Ejecutar un comando por WinRM")
+    print("2. Abrir terminal (PowerShell)")
+
+    option = input(f"Introduce una opción:{Fore.RESET} ")
+
+    if option == "1":
+        comando = input(f"Introduce el comando que quieres ejecutar en {hostname}")
+        exec_command_with_winrm(comando, hostname, username, password)
+    elif option == "2":
+        start_winrm_interactive_session(hostname, username, password)
     else:
         print(f"{Fore.RED}Opción no válida, saliendo del programa... {Fore.RESET}")
         exit()
