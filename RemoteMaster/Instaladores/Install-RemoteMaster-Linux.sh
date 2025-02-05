@@ -13,3 +13,10 @@ apt install openssh-server
 # Iniciar e habilitar
 systemctl start sshd
 systemctl enable sshd
+
+# Instalar librerías python
+pip install python-nmap
+pip install psutil
+pip install paramiko
+pip install colorama
+pip install pyautogui

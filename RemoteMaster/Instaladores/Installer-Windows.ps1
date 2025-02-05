@@ -46,15 +46,22 @@ Set-Service -Name TermService -StartupType Automatic
 Start-Service -Name TermService
 
 # Agregar reglas a el firewall 
-Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+# Reglas para UDP
+New-NetFirewallRule -Name "Remote Desktop (RDP)" -DisplayName "RDP Protocol UDP In" -Direction Inbound -Protocol UDP -LocalPort 3389 -Action Allow -Enabled True
+New-NetFirewallRule -Name "Remote Desktop (RDP)" -DisplayName "RDP Protocol UDP Out" -Direction Outbound -Protocol UDP -LocalPort 3389 -Action Allow -Enabled True
+
+# Reglas para TDP
+New-NetFirewallRule -Name "Remote Desktop (RDP)" -DisplayName "RDP Protocol TCP In" -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow -Enabled True
+New-NetFirewallRule -Name "Remote Desktop (RDP)" -DisplayName "RDP Protocol TCP Out" -Direction Outbound -Protocol TCP -LocalPort 3389 -Action Allow -Enabled True
 
 # Verificar si el puerto RDP está habilitado
 $rdpPort = Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber" | Select-Object -ExpandProperty PortNumber
 if ($rdpPort -ne 3389) {
     Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber" -Value 3389
-    Write-Host "✅ Puerto RDP establecido en 3389."
+    Write-Host "Puerto RDP establecido en 3389."
 } else {
-    Write-Host "✅ Puerto RDP (3389) ya está configurado correctamente."
+    Write-Host "Puerto RDP (3389) ya está configurado correctamente."
 }
 
 # Reiniciar servicio 
@@ -80,7 +87,7 @@ if (-Not ($env:Path -contains $nmapPath)) {
 
 # Verificar si nmap está correctamente en PATH
 $updatedPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
-Write-Host "Nmap se ha instalado y agregado al PATH del sistema. Ruta actual del PATH:" -ForegroundColor green
+Write-Host "Nmap se ha instalado y agregado al PATH del sistema." -ForegroundColor green
 
 }
 
@@ -174,6 +181,17 @@ function install_all(){
     create_cert
     enable_rdp
     enable_winrm
+    install_python_dependencies
+}
+
+function install_python_dependencies(){
+# Lista de librerías a instalar
+pip install python-nmap
+pip install psutil
+pip install paramiko
+pip install colorama
+pip install pyautogui
+
 }
 
 function show_menu(){
@@ -184,6 +202,7 @@ function show_menu(){
     Write-Host "4. Habilitar RDP (MSTSC)"
     Write-Host "5. Habilitar Winrm (Windows Remote Manager)"
     Write-Host "6. Crear certificado"
+    Write-Host "7. Instalar solo librerías de python"
 }
 
 # Menú instalador
@@ -203,5 +222,9 @@ if ($option -eq "1"){
     enable_winrm
 } elseif ($option -eq "6") {
     create_cert
+} elseif ($option -eq "7") {
+    install_python_dependencies
+} else {
+    Write-Host "Eso no es una opción "
 }
 
