@@ -81,7 +81,6 @@ if (-Not ($env:Path -contains $nmapPath)) {
 # Verificar si nmap está correctamente en PATH
 $updatedPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
 Write-Host "Nmap se ha instalado y agregado al PATH del sistema. Ruta actual del PATH:" -ForegroundColor green
-Write-Host $updatedPath
 
 }
 
@@ -97,6 +96,7 @@ $HostIP = ((Get-NetAdapter | Get-NetIPAddress) | Select-Object IPv4Address, Inte
 # Crear certificado autofirmado con información obtenida
 # Obtener nombre del equipo
 $hostname = $env:COMPUTERNAME
+
 $server_cert = New-SelfSignedCertificate -DnsName $hostname, $HostIP -CertStoreLocation Cert:\LocalMachine\My
 
 # ThumbPrint del certificado
@@ -139,11 +139,9 @@ catch {
     # Verificar si el error es porque no existen reglas
     if ($_.FullyQualifiedErrorId -eq "CmdletizationQuery_NotFound_DisplayGroup,Get-NetFirewallRule") {
         
-        # Crear reglas manualmente
-        Write-Host "🔵 Creando regla WinRM HTTP en el puerto 5985" -ForegroundColor Blue
+        # Crear reglas automáticamente
         New-NetFirewallRule -DisplayName "WINRM HTTP" -Direction Inbound -Protocol TCP -LocalPort 5985 -Action Allow -Enabled True
 
-        Write-Host "🔵 Creando regla WinRM HTTPS en el puerto 5986" -ForegroundColor Blue
         New-NetFirewallRule -DisplayName "WINRM HTTPS" -Direction Inbound -Protocol TCP -LocalPort 5986 -Action Allow -Enabled True
         
         # Verificación de creación
@@ -152,7 +150,7 @@ catch {
             Write-Host "❌ No se pudieron crear las reglas. Contacte con un administrador." -ForegroundColor Red
             exit 1
         } else {
-            Write-Host "✅ Reglas de firewall creadas correctamente." -ForegroundColor Green
+            Write-Host "Reglas de firewall creadas correctamente." -ForegroundColor Green
         }
     } else {
         Write-Host "❌ Error inesperado: $($_.Exception.Message)" -ForegroundColor Red
@@ -161,11 +159,9 @@ catch {
 }
 
 # Iniciar y habilitar WinRM
-Write-Host "🟢 Configurando WinRM..." -ForegroundColor Cyan
 Start-Service -Name WinRM
 Set-Service -Name WinRM -StartupType Automatic
 Enable-PSRemoting -Force
-Write-Host "✅ WinRM configurado correctamente." -ForegroundColor Green
 
 # Comprobar si se ha activado
 Test-WSMan -ComputerName $env:COMPUTERNAME
