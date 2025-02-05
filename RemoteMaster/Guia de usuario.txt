@@ -1,0 +1,26 @@
+Bienvenido a la guía de uso de RemoteMaster
+
+RemoteMaster ha sido diseñado en python para realizar conexiones remotas de manera eficaz
+Características:
+  - RemoteMaster es capaz de analizar una red interna a partir de una interfaz para detectar los hosts activos
+    y sus sistemas operativos para establecer conexiones robustas entre sistemas.
+  - RemoteMaster es capaz de realizar conexiones de sistemas nt a unix, e incluso a sistemas de los cuales no conocemos
+    su so, tan solo con su ip podemos acceder a ellos siempre que tengan ssh configurado correctamente.
+  - RemoteMaster es capaz de conectarse usando diferentes protocolos dependiendo de los sistemas host y remoto:
+      - Si el sistema remoto y host son NT, podemos conectar por SFTP, SSH, WINRM y MSTSC.
+      - Si el sistema remoto y host son Linux podemos acceder por SFTP y SSH
+      - Si el sistema remoto y host son Linux o Windows podemos acceder por SFTP y SSH
+      - Si desconocemos el sistema remoto igualmente podremos conectarnos por SFTP y SSH.
+
+Como hacer que funcione:
+Dentro de la carpeta de RemoteMaster tendremos un directorio llamado Instaladores: 
+   - Si estamos en un sistema NT debemos ejecutar Windows-Installer.ps1 en powershell y como administradores.
+   - Si estamos en un sistema Unix debemos ejecutar Install-RemoteMaster-Linux.sh como administradores.
+
+Una vez instalado según nuestro SO, debemos de instalar Python-Dependencies.py si nos da error, debemos de 
+ejecutarlo en un entorno seguro de python.
+
+Y listo, ya tienes todo para empezar a usar RemoteMaster.
+Disfrutalo !!
+
+By Maike-HA-17
