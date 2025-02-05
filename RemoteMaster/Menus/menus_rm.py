@@ -109,6 +109,7 @@ def file_transfer_type_simple_menu(sftp_client):
         # Si seleccionó descargar, pedimos la ruta remota y local
         remote_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa del fichero remoto que deseas descargar: {Fore.RESET}").strip()
         local_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa donde deseas guardar el fichero en tu máquina local: {Fore.RESET}").strip()
+        print("")
         
         # Llamamos a la función de descarga
         sftp_download_file(sftp_client, remote_file, local_file)
@@ -117,6 +118,7 @@ def file_transfer_type_simple_menu(sftp_client):
         # Si seleccionó subir, pedimos las rutas
         local_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa del fichero local que deseas subir: {Fore.RESET}").strip()
         remote_file = input(f"{Fore.LIGHTMAGENTA_EX}Introduce la ruta completa donde deseas subir el fichero en el servidor remoto: {Fore.RESET}").strip()
+        print("")
         
         # Llamamos a la función de subida
         sftp_upload_file(sftp_client, local_file, remote_file)

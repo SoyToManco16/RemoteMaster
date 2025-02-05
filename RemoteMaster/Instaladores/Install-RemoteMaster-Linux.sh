@@ -3,6 +3,9 @@
 # Nombre del archivo requirements.txt
 requirements="requirements.txt"
 
+# Instalar python full
+apt install python-full -y
+
 # Función para instalar paquetes usando pip
 install_with_pip() {
     echo "Instalando paquetes con pip"

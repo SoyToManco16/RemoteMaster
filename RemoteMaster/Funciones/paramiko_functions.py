@@ -258,17 +258,6 @@ def open_sftp_shell(ssh_client):
     finally:
         sftp_client.close()
 
-def file_exists_sftp(sftp_client, remote_file):
-    """ Antes de descargar verifíca si existe el archivo o nó """
-    try:
-        sftp_client.stat(remote_file)
-        return True
-    except IOError:
-        return False
-    except Exception as e:
-        print(f"{Fore.RED}Ocurrió un error al comprobar el archivo{Fore.RESET}")
-        return None
-
 def sftp_upload_file(sftp_client, local_file, remote_file):
     """Función para subir un archivo a un servidor SFTP."""
     try:
