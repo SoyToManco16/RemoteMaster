@@ -1,5 +1,0 @@
-python-nmap
-psutil
-paramiko
-colorama
-pyautogui
