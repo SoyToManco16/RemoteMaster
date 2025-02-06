@@ -204,7 +204,7 @@ function enable_winrm_https {
 
 function install_python_dependencies {
     # Lista de librerías a instalar
-    $librerias = @("python-nmap", "psutil", "paramiko", "pyautogui", "colorama")
+    $librerias = @("python-nmap", "psutil", "paramiko", "pyautogui", "colorama", "pywinrm")
 
     foreach ($lib in $librerias) {
         try {
