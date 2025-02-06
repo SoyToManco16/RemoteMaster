@@ -17,9 +17,6 @@ Dentro de la carpeta de RemoteMaster tendremos un directorio llamado Instaladore
    - Si estamos en un sistema NT debemos ejecutar Windows-Installer.ps1 en powershell y como administradores.
    - Si estamos en un sistema Unix debemos ejecutar Install-RemoteMaster-Linux.sh como administradores.
 
-Una vez instalado según nuestro SO, debemos de instalar Python-Dependencies.py si nos da error, debemos de 
-ejecutarlo en un entorno seguro de python.
-
 Y listo, ya tienes todo para empezar a usar RemoteMaster.
 Disfrutalo !!
 
