@@ -116,7 +116,7 @@ if __name__ == "__main__":
                     if remote_os == "windows" and host_os == "windows":
                         shell_windows(sshclient, choosehost, username, password)
                     elif remote_os in ["windows", "linux", "ip"] and host_os in ["windows", "linux"]:
-                        start_ssh(sshclient)
+                        start_ssh(sshclient, choosehost, username)
                     else:
                         print(f"{Fore.YELLOW}Combinación de sistemas no soportada para acceso remoto.{Fore.RESET}")
 

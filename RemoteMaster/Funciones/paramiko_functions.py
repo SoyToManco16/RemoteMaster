@@ -4,6 +4,7 @@ from colorama import init, Fore
 import sys
 import os
 import select
+import subprocess
 from Funciones.system_funcions import get_os
 
 # Iniciar init para sistemas NT
@@ -110,43 +111,40 @@ def key_or_not(host, answer):
     except Exception as e:
         print(f"{Fore.RED}Error: {e}{Fore.RESET}")
 
-def start_ssh(ssh_client):
-
-    """ Pendiente de comentar """
-
+def start_ssh(ssh_client, hostname, username):
+    """Establece una sesión SSH interactiva.  
+    - En Windows se abre una nueva terminal (CMD o PowerShell) que ejecuta el comando SSH.  
+    - En Linux/macOS se usa la shell interactiva a través de Paramiko.
+    """
+    
     if ssh_client is None:
         print(f"{Fore.RED}No existe un cliente SSH, saliendo del programa... {Fore.RESET}")
         exit()
 
     try:
-        shell = ssh_client.invoke_shell()
-        print(f"{Fore.GREEN}Sesión SSH interactiva establecida{Fore.RESET}")
+        if sys.platform.startswith("win"):
+            # --- Opción para Windows: Abrir una nueva ventana de terminal con el comando SSH ---
+            comando = f'start cmd /k "ssh {username}@{hostname}"'
 
-        if sys.platform.startswith("win"):  # Si es Windows
-            while True:
-                if shell.recv_ready():
-                    data = shell.recv(1024).decode()
-                    if data:
-                        print(data, end="")
+            subprocess.Popen(comando, shell=True)
+            print(f"{Fore.GREEN}Se ha abierto una nueva terminal para la sesión SSH.{Fore.RESET}")
+            
+        else:
+            # --- Opción para Linux/macOS: Usar la sesión interactiva de Paramiko ---
+            # Asignamos un pseudo-terminal (PTY) para interactividad
+            shell = ssh_client.invoke_shell(term='xterm')
+            print(f"{Fore.GREEN}Sesión SSH interactiva establecida{Fore.RESET}")
 
-                if msvcrt.kbhit():
-                    key = msvcrt.getch()
-                    if key == b'\r':  # Enter
-                        shell.send('\n')
-                    elif key == b'\x03':  # Ctrl+C
-                        break
-                    else:
-                        shell.send(key.decode())
-
-        else:  # Si es Linux o macOS
+            # Guardar los ajustes de la terminal local para restaurarlos luego
             old_tty_settings = termios.tcgetattr(sys.stdin)
             try:
                 tty.setraw(sys.stdin.fileno())
                 shell.settimeout(0.0)
 
                 while True:
+                    # Esperamos por datos de la shell o de la entrada local
                     r, w, e = select.select([shell, sys.stdin], [], [])
-
+                    
                     if shell in r:
                         try:
                             output = shell.recv(1024).decode('utf-8')
@@ -164,7 +162,6 @@ def start_ssh(ssh_client):
                         if len(input_cmd) == 0:
                             break
                         shell.send(input_cmd)
-
             finally:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty_settings)
 
@@ -174,13 +171,16 @@ def start_ssh(ssh_client):
         print(f"{Fore.RED}Error: {e}{Fore.RESET}")
 
     finally:
-        # Verifica si 'shell' es válido antes de cerrarlo
-        if 'shell' in locals() and shell:
-            shell.close()
-
-        # Cierra el cliente SSH si está abierto
-        if ssh_client.get_transport() is not None:
-            ssh_client.close()
+        # Cerrar recursos
+        if sys.platform.startswith("win"):
+            # En Windows, si se usó el método de terminal externa, se cierra la conexión del cliente
+            if ssh_client.get_transport() is not None:
+                ssh_client.close()
+        else:
+            if 'shell' in locals() and shell:
+                shell.close()
+            if ssh_client.get_transport() is not None:
+                ssh_client.close()
 
 def open_sftp_shell(ssh_client):
     

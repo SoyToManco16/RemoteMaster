@@ -43,7 +43,7 @@ def exec_command_with_winrm(comando, protocol, hostname, username, password):
 
     # Suprimir warnings de la librería winrm
     warnings.filterwarnings("ignore", category=UserWarning, module='winrm')
-    
+
     try:
         # Crear sesión basada en el protocolo
         if protocol == "http":

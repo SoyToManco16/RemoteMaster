@@ -151,7 +151,7 @@ def shell_windows(ssh_client, hostname, username, password):
         if option == "1":
             call_winrm(hostname, username, password)
         elif option == "2":
-            start_ssh(ssh_client)
+            start_ssh(ssh_client, hostname, username)
         else:
             print(f"{Fore.RED}Opción no válida, saliendo del programa... {Fore.RESET}")
             exit()
