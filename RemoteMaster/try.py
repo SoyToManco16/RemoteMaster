@@ -1,128 +1,44 @@
-# Librerías
-import paramiko
+# Librerias
 from colorama import Fore
-from Funciones.system_funcions import get_os
+import winrm
 
-myhost = get_os()
-myhost = myhost.lower()
-
-# Funciones
-def create_ssh_client_pass(hostname, port, username, password):
-    try:
-        # Crear cliente
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Conectar al servidor
-        ssh_client.connect(hostname=hostname, port=port, username=username, password=password)
-
-        return ssh_client
-
-    except Exception:
-        return None
-
-
-def start_sftp_interactive(ssh_client):
-    if ssh_client is None:
-        print("No existe un cliente SSH, saliendo del programa...")
-        exit()
-
-    try:
-        sftp_client = ssh_client.open_sftp()
-        print("Conexión SFTP interactiva establecida.")
-
-        # Intentamos establecer el directorio raíz al inicio
-        try:
-            sftp_client.chdir('/')  # Cambia al directorio raíz
-            current_directory = sftp_client.getcwd()  # Obtén el directorio actual
-            print(f"Directorio actual: {current_directory}")
-        except Exception as e:
-            print(f"Error al establecer el directorio raíz: {e}")
-            current_directory = "/"
-
-        while True:
-            # Mostrar el prompt interactivo con el directorio actual
-            print(f"\nsftp ({current_directory})> ", end="")
-            command = input().strip()
-
-            # Salir de la sesión SFTP
-            if command == "exit" or command == "quit":
-                print("Saliendo de la sesión SFTP...")
-                break
-
-            # Subir archivo
-            elif command.startswith("put "):
-                parts = command.split(" ", 2)
-                if len(parts) < 3:
-                    print("Uso: put <archivo_local> <archivo_remoto>")
-                    continue
-
-                local_file = parts[1]
-                remote_path = parts[2]
-
-                try:
-                    sftp_client.put(local_file, remote_path)
-                    print(f"Archivo subido a {remote_path}")
-                except Exception as e:
-                    print(f"Error al subir archivo: {e}")
-
-            # Descargar archivo
-            elif command.startswith("get "):
-                parts = command.split(" ", 2)
-                if len(parts) < 3:
-                    print("Uso: get <archivo_remoto> <archivo_local>")
-                    continue
-
-                remote_file = parts[1]
-                local_path = parts[2]
-
-                try:
-                    sftp_client.get(remote_file, local_path)
-                    print(f"Archivo descargado a {local_path}")
-                except Exception as e:
-                    print(f"Error al descargar archivo: {e}")
-
-            # Listar archivos remotos
-            elif command == "ls":
-                try:
-                    files = sftp_client.listdir(current_directory)
-                    for file in files:
-                        print(file)
-                except Exception as e:
-                    print(f"Error al listar archivos: {e}")
-
-            # Cambiar el directorio remoto (similar a cd)
-            elif command.startswith("cd "):
-                path = command[3:].strip()
-                try:
-                    sftp_client.chdir(path)
-                    current_directory = sftp_client.getcwd()  # Actualiza el directorio actual
-                    print(f"Directorio cambiado a: {current_directory}")
-                except Exception as e:
-                    print(f"Error al cambiar el directorio: {e}")
-
-            # Mostrar el directorio actual remoto (similar a pwd)
-            elif command == "pwd":
-                print(f"Directorio actual: {current_directory}")
-
-            # Comandos no reconocidos
-            else:
-                print(f"Comando no reconocido: {command}")
-                print("Comandos disponibles: put, get, ls, cd, pwd, exit")
-
-    except Exception as e:
-        print(f"Error al iniciar sesión SFTP: {e}")
-    finally:
-        sftp_client.close()
-
+def exec_command_with_winrm(comando, protocol, hostname, username, password):
     
+    """ Esta función recibe como parámetros el comando a ejecutar en winrm
+     si queremos usar HTTP o HTTPs el host remoto su usuario y contraseña
+     depende de el protocolo que usemos crea una sesión u otra """
+
+    if protocol == "http":
+        # Crea una sesión con HTTP
+        session = winrm.Session(f'http://{hostname}:5985/wsman', 
+                                auth=(username, password),
+                                transport='ntlm')
+        
+    elif protocol == "https":
+        # Crea una sesión con HTTPS
+        session = winrm.Session(f'https://{hostname}:5986/wsman', 
+                                auth=(username, password),
+                                transport='ntlm', 
+                                server_cert_validation='ignore') 
+    else:
+        print(f"{Fore.RED}Opción no válida, cerrando RemoteMaster...{Fore.RESET}")
+
+    # Ejecutar comando
+    result = session.run_cmd(comando)
+
+    # Devolver resultado del comando y errores
+    if result.status_code == 0:
+        print(f"{Fore.CYAN}Salida del comando:{Fore.RESET} " + result.std_out.decode('latin-1'))
+    else:
+        print(f"{Fore.RED}Error al ejecutar el comando. Código de estado:{Fore.RESET} {result.status_code}")
+        print(f"{Fore.RED}Salida del comando:{Fore.RESET} " + result.std_err.decode())
+
+protocol = "https"
+hostname = "192.168.1.15"
+username = "Usuario"
+password = "Micasa123"
+comando = "ipconfig"
+exec_command_with_winrm(comando, protocol, hostname, username, password)
 
 
-hostname = "192.168.56.1"
-port = 22
-username = "miguel"
-password = "Micasa35262441"
 
-sshclient = create_ssh_client_pass(hostname, port, username, password)
-
-start_sftp_interactive(sshclient)

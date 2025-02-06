@@ -3,7 +3,8 @@ from colorama import Fore
 from Menus.ascii_art import ascii_art, rm_windows, rm_linux, rm_hybrid, rm_IPOnly, rm_sftp, rm_wsman
 from Funciones.system_funcions import get_os, clear
 from Funciones.paramiko_functions import start_ssh, open_sftp_shell, sftp_download_file, sftp_upload_file
-from Funciones.shell_windows_functions import start_winrm_interactive_session, exec_command_with_winrm
+from Funciones.shell_windows_functions import start_winrm_interactive_session, exec_command_with_winrm, create_winrm_session_by_protocol
+import winrm
 
 # Get os
 myhost = get_os()
@@ -68,8 +69,6 @@ def only_IP_menu():
     print(f"{Fore.LIGHTRED_EX}1. Transferencia de archivos (SFTP)")
     print(f"2. Shell (SSH) {Fore.RESET}")
     
-
-
 # Menús File Transfer
 
 def file_transfer_menu(sshclient, sftp_client):
@@ -155,12 +154,15 @@ def call_winrm(hostname, username, password):
     print("2. Abrir terminal (PowerShell)")
 
     option = input(f"Introduce una opción:{Fore.RESET} ")
+    protocol = input(f"{Fore.CYAN}¿Deseas usar HTTPs o HTTP?:{Fore.RESET} ").strip().lower()
+
+    create_winrm_session_by_protocol(protocol)
 
     if option == "1":
         comando = input(f"Introduce el comando que quieres ejecutar en {hostname}")
-        exec_command_with_winrm(comando, hostname, username, password)
+        exec_command_with_winrm(comando, protocol, hostname, username, password)
     elif option == "2":
-        start_winrm_interactive_session(hostname, username, password)
+        start_winrm_interactive_session(protocol, hostname, username, password)
     else:
         print(f"{Fore.RED}Opción no válida, saliendo del programa... {Fore.RESET}")
         exit()

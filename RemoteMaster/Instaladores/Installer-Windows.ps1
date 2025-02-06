@@ -14,6 +14,43 @@ if (-not $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole] "Administ
     exit
 }
 
+function select_network_interface {
+    # Obtener interfaces de red activas con IPv4 (excluyendo loopback y APIPA)
+    $interfaces = Get-NetIPAddress | Where-Object { 
+        $_.AddressFamily -eq "IPv4" -and 
+        $_.InterfaceIndex -gt 0 -and 
+        $_.IPAddress -notlike "127.*" -and 
+        $_.IPAddress -notlike "169.254.*" 
+    } | Select-Object InterfaceAlias, IPAddress
+
+    if (-not $interfaces) {
+        Write-Error "No se encontraron interfaces de red válidas."
+        exit 1
+    }
+
+    # Mostrar las interfaces disponibles
+    Write-Host "Selecciona una interfaz de red para habilitar WinRM:" -ForegroundColor Cyan
+    $i = 1
+    foreach ($interface in $interfaces) {
+        Write-Host "$i. [$($interface.InterfaceAlias)] - $($interface.IPAddress)"
+        $i++
+    }
+
+    # Leer la selección del usuario
+    $selection = Read-Host "Introduce el número de la interfaz (1 - $($interfaces.Count))"
+
+    if ($selection -match "^\d+$" -and [int]$selection -ge 1 -and [int]$selection -le $interfaces.Count) {
+        $selectedInterface = $interfaces[[int]$selection - 1]
+        Write-Host "Seleccionaste: [$($selectedInterface.InterfaceAlias)] - $($selectedInterface.IPAddress)" -ForegroundColor Green
+        return $selectedInterface.IPAddress
+    } else {
+        Write-Error "Selección inválida. Inténtalo de nuevo."
+        exit 1
+    }
+}
+
+$primaryIP = select_network_interface
+
 function install_ssh {
     # Instalar el servidor OpenSSH
     Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
@@ -84,22 +121,7 @@ function install_nmap {
 }
 
 function create_cert {
-    # Obtener direcciones IPv4 válidas (excluyendo loopback y APIPA)
-    $IPAddresses = Get-NetIPAddress | Where-Object { 
-        $_.AddressFamily -eq "IPv4" -and 
-        $_.IPAddress -notlike "127.*" -and 
-        $_.IPAddress -notlike "169.254.*" 
-    } | Select-Object -ExpandProperty IPAddress
-
-    if (-not $IPAddresses) {
-        Write-Error "No se encontraron direcciones IPv4 válidas en el equipo."
-        exit 1
-    }
-
-    # Seleccionar la primera dirección IP como la principal
-    $primaryIP = $IPAddresses[0]
-    $sanEntries = $IPAddresses | Select-Object -Unique
-
+    
     $server_cert = New-SelfSignedCertificate `
         -DnsName $sanEntries `
         -CertStoreLocation Cert:\LocalMachine\My `
