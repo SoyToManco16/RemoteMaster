@@ -1,6 +1,7 @@
 import subprocess
 import pyautogui
 import time
+import warnings
 from Funciones.system_funcions import get_os
 from colorama import init, Fore
 
@@ -40,6 +41,9 @@ def exec_command_with_winrm(comando, protocol, hostname, username, password):
     si queremos usar HTTP o HTTPs el host remoto su usuario y contraseña
     depende de el protocolo que usemos crea una sesión u otra """
 
+    # Suprimir warnings de la librería winrm
+    warnings.filterwarnings("ignore", category=UserWarning, module='winrm')
+    
     try:
         # Crear sesión basada en el protocolo
         if protocol == "http":
