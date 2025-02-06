@@ -52,7 +52,6 @@ def linux_to_linux_menu():
     print(f"{Fore.YELLOW}1. Transferencia de archivos (SFTP)")
     print(f"2. Shell (SSH){Fore.RESET}")
 
-
 def hybrid_menu():
     """Muestra el menú de Windows a Linux o de Linux a Windows."""
 
@@ -60,7 +59,6 @@ def hybrid_menu():
     print(f"{Fore.GREEN}Sistema en uso: {Fore.RESET}{myhost}")
     print(f"{Fore.GREEN}1. Transferencia de archivos (SFTP)")
     print(f"2. Shell (SSH) {Fore.RESET}")
-
 
 def only_IP_menu():
     """Muestra un menú para conexiones de las que solo se conoce la IP"""
@@ -139,6 +137,7 @@ def file_transfer_type_simple_menu(sftp_client):
         print(f"{Fore.RED}Error: {e}{Fore.RESET}")
 
 # Menú para windows (SSH Y WinRM)
+
 def shell_windows(ssh_client, hostname, username, password):
     """Submenú para elegir entre conexión mediante WinRM (PowerShell) o SSH."""
 
@@ -169,8 +168,8 @@ def call_winrm(hostname, username, password):
     print(Fore.CYAN + rm_wsman + "\n")
 
     try:
-        protocol = input(f"¿Deseas usar HTTPs o HTTP?:{Fore.RESET} ").strip().lower()
-        comando = input(f"{Fore.CYAN}Introduce el comando que quieres ejecutar en{Fore.RESET} {hostname}")
+        protocol = input(f"¿Deseas usar HTTPs o HTTP?: {Fore.RESET}").strip().lower()
+        comando = input(f"{Fore.CYAN}Introduce el comando que quieres ejecutar en{Fore.RESET} {hostname}: ")
         exec_command_with_winrm(comando, protocol, hostname, username, password)
         
     except KeyboardInterrupt:

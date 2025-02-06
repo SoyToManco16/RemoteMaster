@@ -91,13 +91,13 @@ def key_or_not(host, answer):
         print(f"{Fore.LIGHTYELLOW_EX}IP del host remoto: {host}{Fore.RESET}")
 
         hostname = host
-        port = int(input(f"{Fore.CYAN}Selecciona el puerto del servidor al que te conectarás (pred: 22): {Fore.RESET}") or "22")
-        username = input(f"{Fore.CYAN}Introduce el nombre de usuario con el que te conectarás al servidor: {Fore.RESET}")
-        password = input(f"{Fore.CYAN}Introduce la contraseña del usuario: {Fore.RESET}")
+        port = int(input(f"{Fore.LIGHTWHITE_EX}Selecciona el puerto del servidor al que te conectarás (pred: 22): {Fore.RESET}") or "22")
+        username = input(f"{Fore.LIGHTWHITE_EX}Introduce el nombre de usuario con el que te conectarás al servidor: {Fore.RESET}")
+        password = input(f"{Fore.LIGHTWHITE_EX}Introduce la contraseña del usuario: {Fore.RESET}")
         
         if answer == "s":
-            key_file = input(f"{Fore.CYAN}Introduce la ruta hacia el archivo de la clave: {Fore.RESET}")
-            key_passphrase = input(f"{Fore.CYAN}Introduce la frase de paso de la clave privada (si no tiene, deja vacío): {Fore.RESET}") or None
+            key_file = input(f"{Fore.LIGHTWHITE_EX}Introduce la ruta hacia el archivo de la clave: {Fore.RESET}")
+            key_passphrase = input(f"{Fore.LIGHTWHITE_EX}Introduce la frase de paso de la clave privada (si no tiene, deja vacío): {Fore.RESET}") or None
             ssh_client = create_ssh_client_keys(hostname, port, username, key_file, key_passphrase)
             return ssh_client, username, password
         

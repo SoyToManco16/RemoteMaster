@@ -32,7 +32,7 @@ def remote_desktop_with_password(hostname, username, password):
     # Presionar 'Enter' para intentar iniciar sesión
     pyautogui.press('enter')
 
-    print("Conexión RDP iniciada.")
+    print(f"{Fore.GREEN}Conexión RDP iniciada.{Fore.RESET}")
 
 def exec_command_with_winrm(comando, protocol, hostname, username, password):
     
@@ -41,22 +41,22 @@ def exec_command_with_winrm(comando, protocol, hostname, username, password):
     depende de el protocolo que usemos crea una sesión u otra """
 
     try:
+        # Crear sesión basada en el protocolo
         if protocol == "http":
-            # Crea una sesión con HTTP
             session = winrm.Session(f'http://{hostname}:5985/wsman', 
                                     auth=(username, password),
                                     transport='ntlm')
             
         elif protocol == "https":
-            # Crea una sesión con HTTPS
             session = winrm.Session(f'https://{hostname}:5986/wsman', 
                                     auth=(username, password),
                                     transport='ntlm', 
                                     server_cert_validation='ignore') 
         else:
             print(f"{Fore.RED}Opción no válida, cerrando RemoteMaster...{Fore.RESET}")
-
-        # Resultado
+            return
+        
+        # Ejecutar comando PowerShell
         result = session.run_ps(comando)
         
         # Devolver resultado del comando y errores
@@ -66,7 +66,18 @@ def exec_command_with_winrm(comando, protocol, hostname, username, password):
             print(f"{Fore.RED}Error al ejecutar el comando. Código de estado:{Fore.RESET} {result.status_code}")
             print(f"{Fore.RED}Salida del comando:{Fore.RESET} " + result.std_err.decode('latin-1'))
 
+    except winrm.exceptions.WinRMTransportError as e:
+        print(f"{Fore.RED}Error de transporte de WinRM: {e}{Fore.RESET}")
+    except winrm.exceptions.InvalidCredentialsError as e:
+        print(f"{Fore.RED}Credenciales inválidas: {e}{Fore.RESET}")
+    except winrm.exceptions.WinRMClientError as e:
+        print(f"{Fore.RED}Error en el cliente de WinRM: {e}{Fore.RESET}")
+    except winrm.exceptions.InvalidWSManFaultError as e:
+        print(f"{Fore.RED}Error en WSMan: {e}{Fore.RESET}")
+    except winrm.exceptions.WinRMError as e:
+        print(f"{Fore.RED}Error en WinRM: {e}{Fore.RESET}")
+    except Exception as e:
+        print(f"{Fore.RED}Error inesperado: {e}{Fore.RESET}")
     except KeyboardInterrupt:
         print(f"{Fore.LIGHTBLACK_EX}Saliendo de RemoteMaster...{Fore.RESET}")
-    except Exception as e:
-        print(f"{Fore.RED}Error: {e}{Fore.RESET}")
+    

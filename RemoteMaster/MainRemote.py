@@ -69,10 +69,6 @@ if __name__ == "__main__":
             # Obtener equipos conectados de la red del usuario
             net_hosts = get_neighbors(user_network); print(" ")
 
-            """
-            Ahora pedimos la IP
-            """
-
             # Introducir la IP a la que nos queremos conectar (Esta variable la pasamos a las funciones de paramiko)
             choosehost = input(f"{Fore.CYAN}Seleccione la dirección IP del host al que quiere conectarse: {Fore.RESET}")
 
